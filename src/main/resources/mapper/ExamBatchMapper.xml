@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.example.exam.ExamBatchMapper">
+
+    <sql id="base_cols">
+        id, batch_name, start_date, end_date, status, remark,
+        deleted, created_at, created_by, updated_at, updated_by
+    </sql>
+
+    <select id="selectById" resultType="org.example.exam.ExamBatchEntity">
+        SELECT <include refid="base_cols"/>
+        FROM t_exam_batch
+        WHERE id = #{id} AND deleted = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectAll" resultType="org.example.exam.ExamBatchEntity">
+        SELECT <include refid="base_cols"/>
+        FROM t_exam_batch
+        WHERE deleted = 0
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        ORDER BY start_date DESC, id DESC
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_exam_batch (
+            batch_name, start_date, end_date, status, remark,
+            deleted, created_at, created_by, updated_at, updated_by
+        ) VALUES (
+            #{batchName}, #{startDate}, #{endDate}, #{status}, #{remark},
+            0, NOW(), #{createdBy}, NOW(), #{updatedBy}
+        )
+    </insert>
+
+    <update id="update">
+        UPDATE t_exam_batch
+        SET
+            batch_name = #{batchName},
+            start_date = #{startDate},
+            end_date = #{endDate},
+            status = #{status},
+            remark = #{remark},
+            updated_at = NOW(),
+            updated_by = #{updatedBy}
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="softDelete">
+        UPDATE t_exam_batch
+        SET deleted = 1, updated_at = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+</mapper>
+
+
+
+
+

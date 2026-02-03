@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.example.exam.ExamRecordMapper">
+
+    <sql id="base_cols">
+        id, batch_id, student_id, doctor_id, record_time, source,
+        audit_status, abnormal_flag, remark, version, deleted,
+        created_at, created_by, updated_at, updated_by
+    </sql>
+
+    <select id="selectById" resultType="org.example.exam.ExamRecordEntity">
+        SELECT <include refid="base_cols"/>
+        FROM t_exam_record
+        WHERE id = #{id} AND deleted = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectPage" resultType="org.example.exam.ExamRecordEntity">
+        SELECT <include refid="base_cols"/>
+        FROM t_exam_record
+        WHERE deleted = 0
+        <if test="batchId != null">
+            AND batch_id = #{batchId}
+        </if>
+        <if test="studentId != null">
+            AND student_id = #{studentId}
+        </if>
+        <if test="doctorId != null">
+            AND doctor_id = #{doctorId}
+        </if>
+        <if test="abnormalFlag != null">
+            AND abnormal_flag = #{abnormalFlag}
+        </if>
+        ORDER BY record_time DESC, id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="count" resultType="long">
+        SELECT COUNT(1)
+        FROM t_exam_record
+        WHERE deleted = 0
+        <if test="batchId != null">
+            AND batch_id = #{batchId}
+        </if>
+        <if test="studentId != null">
+            AND student_id = #{studentId}
+        </if>
+        <if test="doctorId != null">
+            AND doctor_id = #{doctorId}
+        </if>
+        <if test="abnormalFlag != null">
+            AND abnormal_flag = #{abnormalFlag}
+        </if>
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_exam_record (
+            batch_id, student_id, doctor_id, record_time, source,
+            audit_status, abnormal_flag, remark,
+            version, deleted, created_at, created_by, updated_at, updated_by
+        ) VALUES (
+            #{batchId}, #{studentId}, #{doctorId}, #{recordTime}, #{source},
+            #{auditStatus}, #{abnormalFlag}, #{remark},
+            0, 0, NOW(), #{createdBy}, NOW(), #{updatedBy}
+        )
+    </insert>
+
+    <update id="update">
+        UPDATE t_exam_record
+        SET
+            batch_id = #{batchId},
+            student_id = #{studentId},
+            doctor_id = #{doctorId},
+            record_time = #{recordTime},
+            source = #{source},
+            audit_status = #{auditStatus},
+            abnormal_flag = #{abnormalFlag},
+            remark = #{remark},
+            version = version + 1,
+            updated_at = NOW(),
+            updated_by = #{updatedBy}
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="softDelete">
+        UPDATE t_exam_record
+        SET deleted = 1, updated_at = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+</mapper>
+
+
+
+
+

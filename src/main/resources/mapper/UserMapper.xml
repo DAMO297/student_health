@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.example.user.UserMapper">
+
+    <select id="selectById" resultType="org.example.user.UserEntity">
+        SELECT
+            id, username, display_name, user_type, student_id, password_hash,
+            status, token_version, last_login_at, deleted,
+            created_at, created_by, updated_at, updated_by
+        FROM t_user
+        WHERE id = #{id}
+        LIMIT 1
+    </select>
+
+    <select id="selectByUsername" resultType="org.example.user.UserEntity">
+        SELECT
+            id, username, display_name, user_type, student_id, password_hash,
+            status, token_version, last_login_at, deleted,
+            created_at, created_by, updated_at, updated_by
+        FROM t_user
+        WHERE username = #{username}
+        LIMIT 1
+    </select>
+
+    <select id="selectRoleCodesByUserId" resultType="string">
+        SELECT r.code
+        FROM t_user_role ur
+        JOIN t_role r ON r.id = ur.role_id
+        WHERE ur.user_id = #{userId}
+    </select>
+
+    <select id="selectPermissionCodesByUserId" resultType="string">
+        SELECT p.code
+        FROM t_user_role ur
+        JOIN t_role_permission rp ON rp.role_id = ur.role_id
+        JOIN t_permission p ON p.id = rp.permission_id
+        WHERE ur.user_id = #{userId}
+    </select>
+
+    <update id="updateLastLoginAt">
+        UPDATE t_user
+        SET last_login_at = NOW(),
+            updated_at = NOW()
+        WHERE id = #{userId}
+    </update>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="user.id">
+        INSERT INTO t_user (
+            username, display_name, user_type, student_id, password_hash,
+            status, token_version, created_at, created_by, updated_at, updated_by
+        ) VALUES (
+            #{user.username}, #{user.displayName}, #{user.userType}, #{user.studentId}, #{user.passwordHash},
+            #{user.status}, #{user.tokenVersion}, NOW(), #{user.createdBy}, NOW(), #{user.updatedBy}
+        )
+    </insert>
+
+    <select id="selectRoleIdByCode" resultType="long">
+        SELECT id FROM t_role WHERE code = #{code} LIMIT 1
+    </select>
+
+    <insert id="insertUserRole">
+        INSERT INTO t_user_role (user_id, role_id) VALUES (#{userId}, #{roleId})
+    </insert>
+
+    <select id="selectByStatus" resultType="org.example.user.UserEntity">
+        SELECT * FROM t_user WHERE status = #{status} AND deleted = 0
+    </select>
+
+    <update id="updateStatus">
+        UPDATE t_user SET status = #{status}, updated_at = NOW() WHERE id = #{id}
+    </update>
+
+</mapper>
+
+
+
+
+

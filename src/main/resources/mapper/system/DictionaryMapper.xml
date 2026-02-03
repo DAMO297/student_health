@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.example.system.dict.DictionaryMapper">
+
+    <select id="selectList" resultType="org.example.system.dict.DictionaryEntity">
+        SELECT * FROM t_dict
+        WHERE 1=1
+        <if test="typeCode != null and typeCode != ''">
+            AND type_code = #{typeCode}
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        ORDER BY type_code, sort ASC
+    </select>
+    
+    <select id="selectById" resultType="org.example.system.dict.DictionaryEntity">
+        SELECT * FROM t_dict WHERE id = #{id}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_dict (
+            type_code, label, value, sort, status, remark,
+            created_at, created_by, updated_at, updated_by
+        ) VALUES (
+            #{typeCode}, #{label}, #{value}, #{sort}, #{status}, #{remark},
+            NOW(), #{createdBy}, NOW(), #{updatedBy}
+        )
+    </insert>
+
+    <update id="update">
+        UPDATE t_dict
+        SET type_code = #{typeCode},
+            label = #{label},
+            value = #{value},
+            sort = #{sort},
+            status = #{status},
+            remark = #{remark},
+            updated_at = NOW(),
+            updated_by = #{updatedBy}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM t_dict WHERE id = #{id}
+    </delete>
+
+</mapper>

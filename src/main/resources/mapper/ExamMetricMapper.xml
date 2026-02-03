@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.example.exam.ExamMetricMapper">
+
+    <sql id="base_cols">
+        id, record_id, metric_key, metric_name, value_decimal, value_text,
+        unit, ref_low, ref_high, abnormal_flag, created_at, updated_at
+    </sql>
+
+    <select id="selectByRecordId" resultType="org.example.exam.ExamMetricEntity">
+        SELECT <include refid="base_cols"/>
+        FROM t_exam_metric
+        WHERE record_id = #{recordId}
+        ORDER BY metric_key ASC
+    </select>
+
+    <delete id="deleteByRecordId">
+        DELETE FROM t_exam_metric WHERE record_id = #{recordId}
+    </delete>
+
+    <insert id="insertBatch">
+        INSERT INTO t_exam_metric (
+            record_id, metric_key, metric_name, value_decimal, value_text,
+            unit, ref_low, ref_high, abnormal_flag, created_at, updated_at
+        )
+        VALUES
+        <foreach collection="list" item="it" separator=",">
+            (
+                #{it.recordId}, #{it.metricKey}, #{it.metricName}, #{it.valueDecimal}, #{it.valueText},
+                #{it.unit}, #{it.refLow}, #{it.refHigh}, #{it.abnormalFlag}, NOW(), NOW()
+            )
+        </foreach>
+    </insert>
+
+</mapper>
+
+
+
+
+

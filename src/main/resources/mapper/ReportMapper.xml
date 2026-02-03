@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.example.report.ReportMapper">
+
+    <sql id="base_cols">
+        id, record_id, report_no, version, status,
+        summary, doctor_advice, generated_at, archived_at,
+        deleted, created_at, created_by, updated_at, updated_by
+    </sql>
+
+    <select id="selectById" resultType="org.example.report.ReportEntity">
+        SELECT <include refid="base_cols"/>
+        FROM t_report
+        WHERE id = #{id} AND deleted = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectByRecordId" resultType="org.example.report.ReportEntity">
+        SELECT <include refid="base_cols"/>
+        FROM t_report
+        WHERE record_id = #{recordId} AND deleted = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectPage" resultType="org.example.report.ReportEntity">
+        SELECT <include refid="base_cols"/>
+        FROM t_report
+        WHERE deleted = 0
+        <if test="recordId != null">
+            AND record_id = #{recordId}
+        </if>
+        <if test="studentId != null">
+            AND record_id IN (SELECT id FROM t_exam_record WHERE student_id = #{studentId})
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        ORDER BY generated_at DESC, id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="selectExportList" resultType="org.example.report.dto.ReportExcelModel">
+        SELECT 
+            r.report_no,
+            s.student_no,
+            s.name AS student_name,
+            s.college,
+            b.batch_name,
+            r.summary,
+            r.doctor_advice,
+            r.generated_at
+        FROM t_report r
+        JOIN t_exam_record er ON r.record_id = er.id
+        JOIN t_student s ON er.student_id = s.id
+        JOIN t_exam_batch b ON er.batch_id = b.id
+        WHERE r.deleted = 0
+        <if test="recordId != null">
+            AND r.record_id = #{recordId}
+        </if>
+        <if test="status != null">
+            AND r.status = #{status}
+        </if>
+        ORDER BY r.generated_at DESC, r.id DESC
+    </select>
+
+    <select id="count" resultType="long">
+        SELECT COUNT(1)
+        FROM t_report
+        WHERE deleted = 0
+        <if test="recordId != null">
+            AND record_id = #{recordId}
+        </if>
+        <if test="studentId != null">
+            AND record_id IN (SELECT id FROM t_exam_record WHERE student_id = #{studentId})
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_report (
+            record_id, report_no, version, status,
+            summary, doctor_advice, generated_at, archived_at,
+            deleted, created_at, created_by, updated_at, updated_by
+        ) VALUES (
+            #{recordId}, #{reportNo}, #{version}, #{status},
+            #{summary}, #{doctorAdvice}, NOW(), #{archivedAt},
+            0, NOW(), #{createdBy}, NOW(), #{updatedBy}
+        )
+    </insert>
+
+    <update id="updateAdvice">
+        UPDATE t_report
+        SET doctor_advice = #{doctorAdvice},
+            summary = #{summary},
+            version = version + 1,
+            updated_at = NOW(),
+            updated_by = #{updatedBy}
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+</mapper>
+
+
+
+
+

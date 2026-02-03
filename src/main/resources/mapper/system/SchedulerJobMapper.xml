@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.example.system.scheduler.SchedulerJobMapper">
+
+    <select id="selectById" resultType="org.example.system.scheduler.SchedulerJobEntity">
+        SELECT * FROM t_scheduler_job WHERE id = #{id}
+    </select>
+
+    <select id="selectList" resultType="org.example.system.scheduler.SchedulerJobEntity">
+        SELECT * FROM t_scheduler_job
+        WHERE 1=1
+        <if test="jobName != null and jobName != ''">
+            AND job_name LIKE concat('%', #{jobName}, '%')
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_scheduler_job (
+            job_name, job_group, bean_name, method_name, method_params,
+            cron_expression, status, concurrent, remark,
+            created_at, created_by, updated_at, updated_by
+        ) VALUES (
+            #{jobName}, #{jobGroup}, #{beanName}, #{methodName}, #{methodParams},
+            #{cronExpression}, #{status}, #{concurrent}, #{remark},
+            NOW(), #{createdBy}, NOW(), #{updatedBy}
+        )
+    </insert>
+
+    <update id="update">
+        UPDATE t_scheduler_job
+        SET job_name = #{jobName},
+            job_group = #{jobGroup},
+            bean_name = #{beanName},
+            method_name = #{methodName},
+            method_params = #{methodParams},
+            cron_expression = #{cronExpression},
+            status = #{status},
+            concurrent = #{concurrent},
+            remark = #{remark},
+            updated_at = NOW(),
+            updated_by = #{updatedBy}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM t_scheduler_job WHERE id = #{id}
+    </delete>
+
+    <update id="updateStatus">
+        UPDATE t_scheduler_job SET status = #{status} WHERE id = #{id}
+    </update>
+</mapper>

@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.example.student.StudentMapper">
+
+    <sql id="base_cols">
+        id, student_no, name, gender, college, grade, clazz,
+        id_card, phone, email, birthday, status, version, deleted,
+        created_at, created_by, updated_at, updated_by
+    </sql>
+
+    <select id="selectById" resultType="org.example.student.StudentEntity">
+        SELECT <include refid="base_cols"/>
+        FROM t_student
+        WHERE id = #{id} AND deleted = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectByStudentNo" resultType="org.example.student.StudentEntity">
+        SELECT <include refid="base_cols"/>
+        FROM t_student
+        WHERE student_no = #{studentNo} AND deleted = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectPage" resultType="org.example.student.StudentEntity">
+        SELECT <include refid="base_cols"/>
+        FROM t_student
+        WHERE deleted = 0
+        <if test="studentNo != null and studentNo != ''">
+            AND student_no LIKE CONCAT('%', #{studentNo}, '%')
+        </if>
+        <if test="name != null and name != ''">
+            AND name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        <if test="college != null and college != ''">
+            AND college = #{college}
+        </if>
+        <if test="grade != null and grade != ''">
+            AND grade = #{grade}
+        </if>
+        <if test="clazz != null and clazz != ''">
+            AND clazz = #{clazz}
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        ORDER BY updated_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="selectList" resultType="org.example.student.StudentEntity">
+        SELECT <include refid="base_cols"/>
+        FROM t_student
+        WHERE deleted = 0
+        <if test="studentNo != null and studentNo != ''">
+            AND student_no LIKE CONCAT('%', #{studentNo}, '%')
+        </if>
+        <if test="name != null and name != ''">
+            AND name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        <if test="college != null and college != ''">
+            AND college = #{college}
+        </if>
+        <if test="grade != null and grade != ''">
+            AND grade = #{grade}
+        </if>
+        <if test="clazz != null and clazz != ''">
+            AND clazz = #{clazz}
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        ORDER BY updated_at DESC
+    </select>
+
+    <select id="count" resultType="long">
+        SELECT COUNT(1)
+        FROM t_student
+        WHERE deleted = 0
+        <if test="studentNo != null and studentNo != ''">
+            AND student_no LIKE CONCAT('%', #{studentNo}, '%')
+        </if>
+        <if test="name != null and name != ''">
+            AND name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        <if test="college != null and college != ''">
+            AND college = #{college}
+        </if>
+        <if test="grade != null and grade != ''">
+            AND grade = #{grade}
+        </if>
+        <if test="clazz != null and clazz != ''">
+            AND clazz = #{clazz}
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_student (
+            student_no, name, gender, college, grade, clazz,
+            id_card, phone, email, birthday, status,
+            version, deleted, created_at, created_by, updated_at, updated_by
+        ) VALUES (
+            #{studentNo}, #{name}, #{gender}, #{college}, #{grade}, #{clazz},
+            #{idCard}, #{phone}, #{email}, #{birthday}, #{status},
+            #{version}, #{deleted}, NOW(), #{createdBy}, NOW(), #{updatedBy}
+        )
+    </insert>
+
+    <update id="update">
+        UPDATE t_student
+        SET
+            name = #{name},
+            gender = #{gender},
+            college = #{college},
+            grade = #{grade},
+            clazz = #{clazz},
+            id_card = #{idCard},
+            phone = #{phone},
+            email = #{email},
+            birthday = #{birthday},
+            status = #{status},
+            version = version + 1,
+            updated_at = NOW(),
+            updated_by = #{updatedBy}
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="softDelete">
+        UPDATE t_student
+        SET deleted = 1, status = 4, updated_at = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+</mapper>
+
+
+
+
+

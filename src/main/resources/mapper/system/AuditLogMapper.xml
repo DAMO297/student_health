@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.example.system.audit.AuditLogMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_audit_log (
+            user_id, role_code, action, resource, resource_id,
+            detail, result, cost_ms, ip, user_agent, trace_id, created_at
+        ) VALUES (
+            #{userId}, #{roleCode}, #{action}, #{resource}, #{resourceId},
+            #{detail}, #{result}, #{costMs}, #{ip}, #{userAgent}, #{traceId}, NOW()
+        )
+    </insert>
+
+    <select id="selectPage" resultType="org.example.system.audit.AuditLogEntity">
+        SELECT * FROM t_audit_log
+        WHERE 1=1
+        <if test="userId != null">
+            AND user_id = #{userId}
+        </if>
+        <if test="action != null and action != ''">
+            AND action = #{action}
+        </if>
+        ORDER BY created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="selectList" resultType="org.example.system.audit.AuditLogEntity">
+        SELECT * FROM t_audit_log
+        WHERE 1=1
+        <if test="username != null and username != ''">
+            AND user_id IN (SELECT id FROM t_user WHERE username = #{username})
+        </if>
+        <if test="action != null and action != ''">
+            AND action = #{action}
+        </if>
+        <if test="resource != null and resource != ''">
+            AND resource = #{resource}
+        </if>
+        ORDER BY created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="count" resultType="int">
+        SELECT COUNT(*) FROM t_audit_log
+        WHERE 1=1
+        <if test="username != null and username != ''">
+            AND user_id IN (SELECT id FROM t_user WHERE username = #{username})
+        </if>
+        <if test="action != null and action != ''">
+            AND action = #{action}
+        </if>
+        <if test="resource != null and resource != ''">
+            AND resource = #{resource}
+        </if>
+    </select>
+
+</mapper>
