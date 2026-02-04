@@ -54,11 +54,14 @@
             <tbody>
               <tr v-for="m in metrics" :key="m.id">
                 <td>{{ m.metricName }}</td>
-                <td :class="{ 'text-error': isAbnormal(m) }">
+                <td :class="getValueClass(m)">
                   {{ m.valueText || m.valueDecimal }}
+                  <span v-if="getAbnormalInfo(m).abnormal" class="abnormal-indicator" :class="`severity-${getAbnormalInfo(m).severity}`">
+                    {{ getAbnormalInfo(m).msg }}
+                  </span>
                 </td>
                 <td>{{ m.unit || '-' }}</td>
-                <td>{{ formatRefRange(m) }}</td>
+                <td>{{ getRefRange(m) }}</td>
               </tr>
             </tbody>
           </table>
@@ -72,12 +75,14 @@
 import { ref, onMounted } from 'vue';
 import { Activity, ChevronRight, X } from 'lucide-vue-next';
 import request from '../../api/request';
+import { getReferenceRange, checkAbnormal } from '../../utils/examReferenceRanges';
 
 const loading = ref(true);
 const records = ref([]);
 const metrics = ref([]);
 const showModal = ref(false);
 const selectedRecord = ref(null);
+const studentGender = ref(null); // 学生性别
 
 const fetchData = async () => {
   try {
@@ -93,11 +98,12 @@ const fetchData = async () => {
 
 const viewDetails = async (record) => {
   selectedRecord.value = record;
+  studentGender.value = record.studentGender || null; // 假设记录中有性别信息
   try {
     metrics.value = await request.get(`/exam-records/${record.id}/metrics`);
     showModal.value = true;
   } catch (e) {
-    alert('格式详情失败');
+    alert('获取详情失败');
   }
 };
 
@@ -110,16 +116,49 @@ const formatDate = (dateStr) => {
   });
 };
 
-const isAbnormal = (m) => {
-  if (m.valueDecimal === null) return false;
-  if (m.refLow !== null && m.valueDecimal < m.refLow) return true;
-  if (m.refHigh !== null && m.valueDecimal > m.refHigh) return true;
-  return false;
+/**
+ * 获取参考范围文本
+ */
+const getRefRange = (metric) => {
+  // 优先使用数据库中的参考范围
+  if (metric.refLow !== null || metric.refHigh !== null) {
+    if (metric.refLow !== null && metric.refHigh !== null) {
+      return `${metric.refLow}-${metric.refHigh}`;
+    }
+    if (metric.refLow !== null) return `≥${metric.refLow}`;
+    if (metric.refHigh !== null) return `≤${metric.refHigh}`;
+  }
+  
+  // 使用智能算法获取标准参考范围
+  return getReferenceRange(metric.metricKey, studentGender.value);
 };
 
-const formatRefRange = (m) => {
-  if (m.refLow === null && m.refHigh === null) return '无';
-  return `${m.refLow ?? '-'} ~ ${m.refHigh ?? '-'}`;
+/**
+ * 获取异常信息
+ */
+const getAbnormalInfo = (metric) => {
+  // 优先检查数据库中的参考范围
+  if (metric.refLow !== null || metric.refHigh !== null) {
+    if (metric.valueDecimal < metric.refLow) {
+      return { abnormal: true, severity: 'warning', msg: '偏低' };
+    }
+    if (metric.valueDecimal > metric.refHigh) {
+      return { abnormal: true, severity: 'warning', msg: '偏高' };
+    }
+    return { abnormal: false, severity: 'normal', msg: '' };
+  }
+  
+  // 使用智能算法检测
+  return checkAbnormal(metric.metricKey, metric.valueDecimal, studentGender.value);
+};
+
+/**
+ * 获取值的CSS类
+ */
+const getValueClass = (metric) => {
+  const info = getAbnormalInfo(metric);
+  if (!info.abnormal) return '';
+  return info.severity === 'danger' ? 'text-danger' : 'text-warning';
 };
 
 onMounted(fetchData);
@@ -162,7 +201,27 @@ onMounted(fetchData);
 .badge-success { background: #e6f4ea; color: #1e8e3e; }
 .badge-error { background: #fce8e6; color: #d93025; }
 
-.text-error { color: #d93025; font-weight: 600; }
+.text-warning { color: #f9ab00; font-weight: 600; }
+.text-danger { color: #d93025; font-weight: 600; }
+
+.abnormal-indicator {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.severity-warning {
+  background: #fef7e0;
+  color: #f9ab00;
+}
+
+.severity-danger {
+  background: #fce8e6;
+  color: #d93025;
+}
 
 .flex-center { display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 64px; }
 

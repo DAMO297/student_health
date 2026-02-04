@@ -352,17 +352,105 @@ const onStudentChange = () => {
 
 const handleSubmit = async () => {
   try {
+    // 转换前端表单格式为后端期望的格式
+    const payload = {
+      batchId: form.value.batchId,
+      studentId: form.value.studentId,
+      recordTime: form.value.examTime.replace('T', ' ') + ':00', // 转换为 yyyy-MM-dd HH:mm:ss
+      remark: form.value.remark || '',
+      metrics: []
+    };
+
+    // 将体检指标转换为 metrics 数组
+    if (form.value.height) {
+      payload.metrics.push({
+        metricKey: 'height',
+        metricName: '身高',
+        valueDecimal: form.value.height,
+        unit: 'cm'
+      });
+    }
+    
+    if (form.value.weight) {
+      payload.metrics.push({
+        metricKey: 'weight',
+        metricName: '体重',
+        valueDecimal: form.value.weight,
+        unit: 'kg'
+      });
+    }
+    
+    // 计算并添加 BMI
+    if (form.value.height && form.value.weight) {
+      const heightInMeters = form.value.height / 100;
+      const bmi = form.value.weight / (heightInMeters * heightInMeters);
+      payload.metrics.push({
+        metricKey: 'bmi',
+        metricName: 'BMI',
+        valueDecimal: parseFloat(bmi.toFixed(1)),
+        unit: ''
+      });
+    }
+    
+    if (form.value.sbp) {
+      payload.metrics.push({
+        metricKey: 'sbp',
+        metricName: '收缩压',
+        valueDecimal: form.value.sbp,
+        unit: 'mmHg'
+      });
+    }
+    
+    if (form.value.dbp) {
+      payload.metrics.push({
+        metricKey: 'dbp',
+        metricName: '舒张压',
+        valueDecimal: form.value.dbp,
+        unit: 'mmHg'
+      });
+    }
+    
+    if (form.value.heartRate) {
+      payload.metrics.push({
+        metricKey: 'heart_rate',
+        metricName: '心率',
+        valueDecimal: form.value.heartRate,
+        unit: 'bpm'
+      });
+    }
+    
+    if (form.value.visionL) {
+      payload.metrics.push({
+        metricKey: 'vision_l',
+        metricName: '左眼视力',
+        valueDecimal: form.value.visionL,
+        unit: ''
+      });
+    }
+    
+    if (form.value.visionR) {
+      payload.metrics.push({
+        metricKey: 'vision_r',
+        metricName: '右眼视力',
+        valueDecimal: form.value.visionR,
+        unit: ''
+      });
+    }
+
+    console.log('💾 提交数据:', payload);
+
     if (isEditMode.value) {
-      await updateRecord(form.value.id, form.value);
+      await updateRecord(form.value.id, payload);
       alert('体检记录更新成功！');
     } else {
-      await createRecord(form.value);
+      await createRecord(payload);
       alert('体检记录添加成功！');
     }
     closeModal();
     selectBatch(selectedBatchId.value); // 刷新列表
   } catch (e) {
-    alert('操作失败：' + (e.message || '未知错误'));
+    console.error('❌ 保存失败:', e);
+    alert('操作失败：' + (e.response?.data?.message || e.message || '未知错误'));
   }
 };
 
@@ -404,12 +492,20 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   padding: 16px 0;
+  background: #fff !important;
+  border: 2px solid red !important; /* DEBUG: 如果看到红框说明侧边栏存在 */
+  min-width: 240px;
 }
 
-.batch-sidebar h3 {
+.batch-sidebar .card-header {
   padding: 0 24px 16px;
-  font-size: 16px;
   border-bottom: 1px solid var(--border-color);
+}
+
+.batch-sidebar .card-header h3 {
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0;
 }
 
 .batch-list {

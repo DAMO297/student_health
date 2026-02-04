@@ -1,41 +1,71 @@
 package org.example.user;
 
 import org.example.common.ApiResponse;
+import org.example.common.audit.AuditLog;
 import org.example.security.SecurityUtil;
-import org.example.student.StudentEntity;
-import org.example.student.StudentService;
+import org.example.user.dto.ChangePasswordRequest;
+import org.example.user.dto.UpdateProfileRequest;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.Map;
-
+/**
+ * 用户个人信息管理控制器
+ */
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/user")
 public class UserController {
 
     private final UserService userService;
-    private final StudentService studentService;
 
-    public UserController(UserService userService, StudentService studentService) {
+    public UserController(UserService userService) {
         this.userService = userService;
-        this.studentService = studentService;
     }
 
+    /**
+     * 获取当前用户个人信息
+     */
     @GetMapping("/profile")
     @PreAuthorize("isAuthenticated()")
-    public ApiResponse<Map<String, Object>> getProfile() {
+    public ApiResponse<UserEntity> getProfile() {
         Long userId = SecurityUtil.currentUserId();
         UserEntity user = userService.getById(userId);
+        // 清除密码字段
+        if (user != null) {
+            user.setPasswordHash(null);
+        }
+        return ApiResponse.ok(user);
+    }
 
-        Map<String, Object> profile = new HashMap<>();
-        profile.put("user", user);
+    /**
+     * 更新个人资料
+     */
+    @PutMapping("/profile")
+    @PreAuthorize("isAuthenticated()")
+    @AuditLog(action = "更新个人资料", resource = "user_profile")
+    public ApiResponse<Void> updateProfile(@Validated @RequestBody UpdateProfileRequest req) {
+        Long userId = SecurityUtil.currentUserId();
+        userService.updateDisplayName(userId, req.getDisplayName());
+        return ApiResponse.ok(null);
+    }
 
-        if (user.getStudentId() != null) {
-            StudentEntity student = studentService.get(user.getStudentId());
-            profile.put("student", student);
+    /**
+     * 修改密码
+     */
+    @PutMapping("/change-password")
+    @PreAuthorize("isAuthenticated()")
+    @AuditLog(action = "修改密码", resource = "user_password")
+    public ApiResponse<Void> changePassword(@Validated @RequestBody ChangePasswordRequest req) {
+        if (!req.getNewPassword().equals(req.getConfirmPassword())) {
+            return ApiResponse.fail(400, "两次密码输入不一致");
         }
 
-        return ApiResponse.ok(profile);
+        if (req.getNewPassword().length() < 6) {
+            return ApiResponse.fail(400, "密码长度至少6位");
+        }
+
+        Long userId = SecurityUtil.currentUserId();
+        userService.changePassword(userId, req.getOldPassword(), req.getNewPassword());
+        return ApiResponse.ok(null);
     }
 }

@@ -15,6 +15,10 @@ import java.io.IOException;
 import com.alibaba.excel.EasyExcel;
 import org.example.student.dto.StudentExcelModel;
 import org.example.student.dto.StudentImportResult;
+import org.example.student.dto.CreateStudentAccountRequest;
+import org.example.student.dto.ResetPasswordRequest;
+import org.example.user.UserService;
+import org.example.user.UserEntity;
 import java.util.List;
 
 @RestController
@@ -22,9 +26,11 @@ import java.util.List;
 public class StudentController {
 
     private final StudentService studentService;
+    private final UserService userService;
 
-    public StudentController(StudentService studentService) {
+    public StudentController(StudentService studentService, UserService userService) {
         this.studentService = studentService;
+        this.userService = userService;
     }
 
     @GetMapping
@@ -96,5 +102,52 @@ public class StudentController {
         List<StudentExcelModel> list = studentService.exportStudents(studentNo, name, college, grade, clazz, status);
         EasyExcel.write(response.getOutputStream(), StudentExcelModel.class).sheet("学生数据").doWrite(list);
     }
-}
 
+    // ==================== 账号管理 ====================
+
+    /**
+     * 获取学生绑定的账号信息
+     */
+    @GetMapping("/{id}/account")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<UserEntity> getStudentAccount(@PathVariable Long id) {
+        UserEntity user = userService.getUserByStudentId(id);
+        return ApiResponse.ok(user);
+    }
+
+    /**
+     * 为学生创建账号
+     */
+    @PostMapping("/{id}/account")
+    @PreAuthorize("hasRole('ADMIN')")
+    @AuditLog(action = "创建学生账号", resource = "student_account")
+    public ApiResponse<UserEntity> createStudentAccount(
+            @PathVariable Long id,
+            @Validated @RequestBody CreateStudentAccountRequest req) {
+        // 获取学生信息
+        StudentEntity student = studentService.get(id);
+
+        // 创建账号
+        UserEntity user = userService.createStudentAccountWithInfo(
+                id,
+                student.getStudentNo(),
+                student.getName(),
+                req.getPassword(),
+                SecurityUtil.currentUsername());
+
+        return ApiResponse.ok(user);
+    }
+
+    /**
+     * 重置学生账号密码
+     */
+    @PutMapping("/{id}/account/reset-password")
+    @PreAuthorize("hasRole('ADMIN')")
+    @AuditLog(action = "重置学生密码", resource = "student_account")
+    public ApiResponse<Void> resetStudentPassword(
+            @PathVariable Long id,
+            @Validated @RequestBody ResetPasswordRequest req) {
+        userService.resetStudentPassword(id, req.getNewPassword());
+        return ApiResponse.ok(null);
+    }
+}

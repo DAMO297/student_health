@@ -25,7 +25,7 @@
           <span>{{ currentRouteName }}</span>
         </div>
         <div class="header-actions">
-          <div class="user-info">
+          <div class="user-info" @click="$router.push('/profile')" style="cursor: pointer;" title="点击进入个人中心">
             <span>{{ auth.userInfo?.username }}</span>
             <div class="avatar">
               <User :size="18" />
@@ -82,7 +82,7 @@ const menuItems = computed(() => {
     { name: '体检批次管理', path: '/batches', icon: Calendar, roles: [1] }, // 仅管理员可见
     { name: '体检管理', path: '/exams', icon: Activity, roles: [1, 2] },
     { name: '健康报告', path: '/reports', icon: FileText, roles: [1, 2] },
-    { name: '个人信息管理', path: '/student/profile', icon: UserCircle, roles: [3] },
+    { name: '个人中心', path: '/profile', icon: Settings, roles: [1, 2, 3] }, // 所有用户可见
     { name: '体检记录查看', path: '/student/records', icon: History, roles: [3] },
     { name: '健康建议与预警', path: '/student/advice', icon: HeartPulse, roles: [3] },
     { name: '数据字典', path: '/system/dict', icon: BookOpen, roles: [1] },

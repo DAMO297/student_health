@@ -62,6 +62,7 @@
           </td>
           <td>
             <div class="action-btns">
+              <button class="icon-btn" @click="handleAccountManagement(item)" title="账号管理"><User :size="16" /></button>
               <button class="icon-btn" @click="openEditModal(item)" title="编辑"><Edit :size="16" /></button>
               <button class="icon-btn danger" @click="handleDelete(item)" title="删除"><Trash2 :size="16" /></button>
             </div>
@@ -155,18 +156,89 @@
       </div>
     </div>
   </div>
+
+  <!-- Account Management Modal -->
+  <div v-if="showAccountModal" class="modal-overlay" @click.self="showAccountModal = false">
+    <div class="modal-card card" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3>账号管理 - {{ currentStudent?.name }}</h3>
+        <button class="btn-close" @click="showAccountModal = false"><X :size="20" /></button>
+      </div>
+
+      <div class="modal-body">
+        <div v-if="accountInfo" class="account-info">
+          <div class="info-row">
+            <span class="label">用户名：</span>
+            <span class="value">{{ accountInfo.username }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">状态：</span>
+            <span class="badge" :class="accountInfo.status === 1 ? 'badge-success' : 'badge-error'">
+              {{ accountInfo.status === 1 ? '正常' : '禁用' }}
+            </span>
+          </div>
+          <div class="info-row">
+            <span class="label">最后登录：</span>
+            <span class="value">{{ accountInfo.lastLoginAt || '从未登录' }}</span>
+          </div>
+
+          <div class="form-group" style="margin-top: 20px;">
+            <label>重置密码</label>
+            <input 
+              type="password" 
+              v-model="accountPassword" 
+              placeholder="输入新密码（6位以上）"
+            />
+          </div>
+
+          <button 
+            class="btn btn-primary" 
+            style="width: 100%; margin-top: 10px;"
+            @click="handleResetPassword"
+            :disabled="!accountPassword || accountPassword.length < 6"
+          >
+            重置密码
+          </button>
+        </div>
+
+        <div v-else class="no-account">
+          <p>该学生尚未创建账号</p>
+          <div class="form-group" style="margin-top: 20px;">
+            <label>初始密码 <span class="required">*</span></label>
+            <input 
+              type="password" 
+              v-model="accountPassword" 
+              placeholder="设置初始密码（6位以上）"
+            />
+          </div>
+
+          <button 
+            class="btn btn-primary" 
+            style="width: 100%; margin-top: 10px;"
+            @click="handleCreateAccount"
+            :disabled="!accountPassword || accountPassword.length < 6"
+          >
+            创建账号
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
-import { Plus, Upload, Download, Edit, Trash2, Search, X } from 'lucide-vue-next';
+import { Plus, Upload, Download, Edit, Trash2, Search, X, User } from 'lucide-vue-next';
 import { 
   getStudentPage, 
   createStudent, 
   updateStudent, 
   deleteStudent, 
   importStudents, 
-  exportStudents 
+  exportStudents,
+  getStudentAccount,
+  createStudentAccount,
+  resetStudentPassword
 } from '../../api/student';
 
 const list = ref([]);
@@ -178,6 +250,12 @@ const showModal = ref(false);
 const editingId = ref(null);
 const showImportModal = ref(false);
 const selectedFile = ref(null);
+
+// 账号管理相关状态
+const showAccountModal = ref(false);
+const currentStudent = ref(null);
+const accountInfo = ref(null);
+const accountPassword = ref('');
 
 const filters = reactive({
   name: '',
@@ -223,6 +301,61 @@ const resetFilters = () => {
 
 const handleExport = () => {
   exportStudents(filters);
+};
+
+// ==================== 账号管理 ====================
+
+const handleAccountManagement = async (student) => {
+  currentStudent.value = student;
+  accountPassword.value = '';
+  
+  try {
+    const res = await getStudentAccount(student.id);
+    accountInfo.value = res;
+  } catch (e) {
+    console.error('获取账号信息失败:', e);
+    accountInfo.value = null;
+  }
+  
+  showAccountModal.value = true;
+};
+
+const handleCreateAccount = async () => {
+  if (!accountPassword.value || accountPassword.value.length < 6) {
+    alert('密码至少需要6位！');
+    return;
+  }
+
+  try {
+    await createStudentAccount(currentStudent.value.id, accountPassword.value);
+    alert(`账号创建成功！\n用户名：${currentStudent.value.studentNo}\n密码：${accountPassword.value}\n请告知学生妥善保管`);
+    showAccountModal.value = false;
+    // 刷新账号信息
+    await handleAccountManagement(currentStudent.value);
+  } catch (e) {
+    console.error('创建账号失败:', e);
+    alert('创建账号失败：' + (e.response?.data?.message || e.message || '未知错误'));
+  }
+};
+
+const handleResetPassword = async () => {
+  if (!accountPassword.value || accountPassword.value.length < 6) {
+    alert('密码至少需要6位！');
+    return;
+  }
+
+  if (!confirm('确定要重置该学生的登录密码吗？')) {
+    return;
+  }
+
+  try {
+    await resetStudentPassword(currentStudent.value.id, accountPassword.value);
+    alert(`密码重置成功！\n新密码：${accountPassword.value}\n请告知学生妥善保管`);
+    accountPassword.value = '';
+  } catch (e) {
+    console.error('重置密码失败:', e);
+    alert('重置密码失败：' + (e.response?.data?.message || e.message || '未知错误'));
+  }
 };
 
 const openAddModal = () => {

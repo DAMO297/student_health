@@ -56,6 +56,56 @@
         </if>
     </select>
 
+    <!-- 分页查询体检记录（包含学生、医生信息和体检指标） -->
+    <select id="selectPageVO" resultType="org.example.exam.dto.ExamRecordVO">
+        SELECT
+            r.id            AS id,
+            r.batch_id      AS batchId,
+            r.student_id    AS studentId,
+            r.doctor_id     AS doctorId,
+            r.record_time   AS recordTime,
+            r.source        AS source,
+            r.audit_status  AS auditStatus,
+            r.abnormal_flag AS abnormalFlag,
+            r.remark        AS remark,
+            r.created_at    AS createdAt,
+            r.created_by    AS createdBy,
+            r.updated_at    AS updatedAt,
+            r.updated_by    AS updatedBy,
+            -- 学生信息
+            s.student_no    AS studentNo,
+            s.name          AS studentName,
+            -- 医生信息
+            u.display_name  AS doctorName,
+            -- 体检指标（从 t_exam_metric 表中提取）
+            (SELECT value_decimal FROM t_exam_metric WHERE record_id = r.id AND metric_key = 'height' LIMIT 1) AS height,
+            (SELECT value_decimal FROM t_exam_metric WHERE record_id = r.id AND metric_key = 'weight' LIMIT 1) AS weight,
+            (SELECT value_decimal FROM t_exam_metric WHERE record_id = r.id AND metric_key = 'bmi' LIMIT 1) AS bmi,
+            (SELECT value_decimal FROM t_exam_metric WHERE record_id = r.id AND metric_key = 'sbp' LIMIT 1) AS sbp,
+            (SELECT value_decimal FROM t_exam_metric WHERE record_id = r.id AND metric_key = 'dbp' LIMIT 1) AS dbp,
+            (SELECT value_decimal FROM t_exam_metric WHERE record_id = r.id AND metric_key = 'heart_rate' LIMIT 1) AS heartRate,
+            (SELECT value_decimal FROM t_exam_metric WHERE record_id = r.id AND metric_key = 'vision_l' LIMIT 1) AS visionL,
+            (SELECT value_decimal FROM t_exam_metric WHERE record_id = r.id AND metric_key = 'vision_r' LIMIT 1) AS visionR
+        FROM t_exam_record r
+        LEFT JOIN t_student s ON r.student_id = s.id
+        LEFT JOIN t_user u ON r.doctor_id = u.id
+        WHERE r.deleted = 0
+        <if test="batchId != null">
+            AND r.batch_id = #{batchId}
+        </if>
+        <if test="studentId != null">
+            AND r.student_id = #{studentId}
+        </if>
+        <if test="doctorId != null">
+            AND r.doctor_id = #{doctorId}
+        </if>
+        <if test="abnormalFlag != null">
+            AND r.abnormal_flag = #{abnormalFlag}
+        </if>
+        ORDER BY r.record_time DESC, r.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO t_exam_record (
             batch_id, student_id, doctor_id, record_time, source,

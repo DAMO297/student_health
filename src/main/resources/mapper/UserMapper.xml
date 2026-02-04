@@ -73,6 +73,30 @@
         UPDATE t_user SET status = #{status}, updated_at = NOW() WHERE id = #{id}
     </update>
 
+    <select id="selectByStudentId" resultType="org.example.user.UserEntity">
+        SELECT
+            id, username, display_name, user_type, student_id, password_hash,
+            status, token_version, last_login_at, deleted,
+            created_at, created_by, updated_at, updated_by
+        FROM t_user
+        WHERE student_id = #{studentId} AND deleted = 0
+        LIMIT 1
+    </select>
+
+    <update id="updatePassword">
+        UPDATE t_user
+        SET password_hash = #{passwordHash},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateDisplayName">
+        UPDATE t_user
+        SET display_name = #{displayName},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
 </mapper>
 
 

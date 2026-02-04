@@ -22,7 +22,8 @@ public class ExamService {
     private final ExamMetricMapper metricMapper;
     private final UserService userService;
 
-    public ExamService(ExamBatchMapper batchMapper, ExamRecordMapper recordMapper, ExamMetricMapper metricMapper, UserService userService) {
+    public ExamService(ExamBatchMapper batchMapper, ExamRecordMapper recordMapper, ExamMetricMapper metricMapper,
+            UserService userService) {
         this.batchMapper = batchMapper;
         this.recordMapper = recordMapper;
         this.metricMapper = metricMapper;
@@ -35,7 +36,8 @@ public class ExamService {
 
     public ExamBatchEntity getBatch(Long id) {
         ExamBatchEntity e = batchMapper.selectById(id);
-        if (e == null) throw BizException.notFound("体检批次不存在");
+        if (e == null)
+            throw BizException.notFound("体检批次不存在");
         return e;
     }
 
@@ -44,7 +46,8 @@ public class ExamService {
         e.setCreatedBy(operator);
         e.setUpdatedBy(operator);
         e.setDeleted(0);
-        if (e.getStatus() == null) e.setStatus(1);
+        if (e.getStatus() == null)
+            e.setStatus(1);
         batchMapper.insert(e);
         return getBatch(e.getId());
     }
@@ -65,12 +68,14 @@ public class ExamService {
     @Transactional
     public void deleteBatch(Long id) {
         int n = batchMapper.softDelete(id);
-        if (n == 0) throw BizException.notFound("体检批次不存在或已删除");
+        if (n == 0)
+            throw BizException.notFound("体检批次不存在或已删除");
     }
 
     public ExamRecordEntity getRecord(Long id) {
         ExamRecordEntity e = recordMapper.selectById(id);
-        if (e == null) throw BizException.notFound("体检记录不存在");
+        if (e == null)
+            throw BizException.notFound("体检记录不存在");
         return e;
     }
 
@@ -78,16 +83,19 @@ public class ExamService {
         return metricMapper.selectByRecordId(recordId);
     }
 
-    public PageResult<ExamRecordEntity> pageRecords(Long batchId, Long studentId, Long doctorId, Integer abnormalFlag, int page, int pageSize) {
+    public PageResult<org.example.exam.dto.ExamRecordVO> pageRecords(Long batchId, Long studentId, Long doctorId,
+            Integer abnormalFlag, int page, int pageSize) {
         int offset = Math.max(0, page - 1) * pageSize;
         long total = recordMapper.count(batchId, studentId, doctorId, abnormalFlag);
-        return new PageResult<>(total, recordMapper.selectPage(batchId, studentId, doctorId, abnormalFlag, offset, pageSize));
+        return new PageResult<>(total,
+                recordMapper.selectPageVO(batchId, studentId, doctorId, abnormalFlag, offset, pageSize));
     }
 
     @Transactional
     public ExamRecordEntity createRecord(ExamRecordSaveRequest req, String operatorUsername) {
         UserEntity doctor = userService.getByUsername(operatorUsername);
-        if (doctor == null) throw BizException.unauthorized();
+        if (doctor == null)
+            throw BizException.unauthorized();
 
         ExamRecordEntity e = new ExamRecordEntity();
         e.setBatchId(req.getBatchId());
@@ -103,7 +111,8 @@ public class ExamService {
         if (req.getRecordTime() == null || req.getRecordTime().trim().isEmpty()) {
             e.setRecordTime(LocalDateTime.now());
         } else {
-            e.setRecordTime(LocalDateTime.parse(req.getRecordTime().trim(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            e.setRecordTime(LocalDateTime.parse(req.getRecordTime().trim(),
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         }
         recordMapper.insert(e);
 
@@ -116,7 +125,8 @@ public class ExamService {
         ExamRecordEntity e = getRecord(id);
         // 关键字段保持一致：允许更新批次/学生/时间/备注；doctorId 默认跟随操作者
         UserEntity doctor = userService.getByUsername(operatorUsername);
-        if (doctor == null) throw BizException.unauthorized();
+        if (doctor == null)
+            throw BizException.unauthorized();
 
         e.setBatchId(req.getBatchId());
         e.setStudentId(req.getStudentId());
@@ -126,7 +136,8 @@ public class ExamService {
         e.setRemark(req.getRemark());
         e.setUpdatedBy(operatorUsername);
         if (req.getRecordTime() != null && !req.getRecordTime().trim().isEmpty()) {
-            e.setRecordTime(LocalDateTime.parse(req.getRecordTime().trim(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            e.setRecordTime(LocalDateTime.parse(req.getRecordTime().trim(),
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         }
         recordMapper.update(e);
 
@@ -137,17 +148,20 @@ public class ExamService {
     @Transactional
     public void deleteRecord(Long id) {
         int n = recordMapper.softDelete(id);
-        if (n == 0) throw BizException.notFound("体检记录不存在或已删除");
+        if (n == 0)
+            throw BizException.notFound("体检记录不存在或已删除");
         metricMapper.deleteByRecordId(id);
     }
 
     private void saveMetrics(Long recordId, List<ExamMetricSaveRequest> metrics) {
         metricMapper.deleteByRecordId(recordId);
-        if (metrics == null || metrics.isEmpty()) return;
+        if (metrics == null || metrics.isEmpty())
+            return;
 
         List<ExamMetricEntity> list = new ArrayList<>();
         for (ExamMetricSaveRequest m : metrics) {
-            if (m.getMetricKey() == null || m.getMetricKey().trim().isEmpty()) continue;
+            if (m.getMetricKey() == null || m.getMetricKey().trim().isEmpty())
+                continue;
             ExamMetricEntity em = new ExamMetricEntity();
             em.setRecordId(recordId);
             em.setMetricKey(m.getMetricKey());
@@ -160,11 +174,7 @@ public class ExamService {
             em.setAbnormalFlag(m.getAbnormalFlag() == null ? 0 : m.getAbnormalFlag());
             list.add(em);
         }
-        if (!list.isEmpty()) metricMapper.insertBatch(list);
+        if (!list.isEmpty())
+            metricMapper.insertBatch(list);
     }
 }
-
-
-
-
-

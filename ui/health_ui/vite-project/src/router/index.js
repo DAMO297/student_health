@@ -59,6 +59,11 @@ const routes = [
                 component: () => import('../views/student/Advice.vue')
             },
             {
+                path: 'profile',
+                name: 'Profile',
+                component: () => import('../views/Profile.vue')
+            },
+            {
                 path: 'system/audit',
                 name: 'AuditLogs',
                 component: () => import('../views/system/AuditLog.vue')

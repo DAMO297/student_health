@@ -55,7 +55,7 @@ public class ExamController {
     // 体检记录
     @GetMapping("/exam-records")
     @PreAuthorize("isAuthenticated()")
-    public ApiResponse<PageResult<ExamRecordEntity>> pageRecords(
+    public ApiResponse<PageResult<org.example.exam.dto.ExamRecordVO>> pageRecords(
             @RequestParam(required = false) Long batchId,
             @RequestParam(required = false) Long studentId,
             @RequestParam(required = false) Long doctorId,
@@ -114,4 +114,3 @@ public class ExamController {
         return ApiResponse.ok(null);
     }
 }
-
