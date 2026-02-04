@@ -92,8 +92,34 @@ const getWarningText = (report) => {
   return '健康状况良好';
 };
 
-const downloadPdf = (id) => {
-  window.open(`/api/reports/${id}/pdf`, '_blank');
+const downloadPdf = async (id) => {
+  try {
+    console.log('🔍 Starting PDF download for report:', id);
+    console.log('📝 Token from localStorage:', localStorage.getItem('token'));
+    
+    const response = await request.get(`/reports/${id}/pdf`, {
+      responseType: 'blob'
+    });
+    
+    console.log('✅ PDF download response received:', response);
+    
+    // 创建blob URL并触发下载
+    const blob = new Blob([response], { type: 'application/pdf' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `health_report_${id}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    
+    // 清理
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (e) {
+    console.error('❌ 下载PDF失败:', e);
+    console.error('错误详情:', e.response);
+    alert('下载PDF失败：' + (e.response?.data?.message || e.message || '未知错误'));
+  }
 };
 
 onMounted(fetchData);

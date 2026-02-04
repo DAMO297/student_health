@@ -493,7 +493,6 @@ onMounted(() => {
   flex-direction: column;
   padding: 16px 0;
   background: #fff !important;
-  border: 2px solid red !important; /* DEBUG: 如果看到红框说明侧边栏存在 */
   min-width: 240px;
 }
 

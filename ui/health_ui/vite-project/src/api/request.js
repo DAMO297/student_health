@@ -11,6 +11,9 @@ request.interceptors.request.use(
     const token = localStorage.getItem('token');
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
+      console.log('✅ Added Authorization header to request:', config.url);
+    } else {
+      console.warn('⚠️ No token found in localStorage for request:', config.url);
     }
     return config;
   },
@@ -22,9 +25,9 @@ request.interceptors.request.use(
 // Response Interceptor
 request.interceptors.response.use(
   (response) => {
-    // 如果是blob类型的响应（例如文件下载），直接返回
+    // 如果是blob类型的响应（例如文件下载），直接返回data
     if (response.config.responseType === 'blob') {
-      return response;
+      return response.data;
     }
 
     const res = response.data;

@@ -283,7 +283,7 @@ onMounted(fetchBatches);
 .badge-warning { background: #fff7e6; color: #faad14; }
 .badge-info { background: #e8f0fe; color: #1a73e8; }
 .badge-secondary { background: #f1f3f4; color: #5f6368; }
-.badge-danger { background: #fce8e6; color: #d93025; }
+.badge-danger { background: #f1f3f4; color: #5f6368; }
 
 .action-btns {
   display: flex;
@@ -297,13 +297,14 @@ onMounted(fetchBatches);
 }
 
 .btn-danger {
-  background: #fce8e6;
-  color: #d93025;
-  border: 1px solid #fce8e6;
+  background: #f1f3f4;
+  color: #5f6368;
+  border: 1px solid #dadce0;
 }
 
 .btn-danger:hover {
-  background: #f6c7c2;
+  background: #e8eaed;
+  border-color: #c4c7ca;
 }
 
 /* Modal */

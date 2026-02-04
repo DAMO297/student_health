@@ -194,9 +194,16 @@ public class ReportService {
                         : (m.getValueDecimal() + " " + (m.getUnit() == null ? "" : m.getUnit()));
                 addCell(metricTable, val, textFont);
 
+                // 优先使用数据库中的参考范围，如果没有则使用算法计算
                 String ref = "";
                 if (m.getRefLow() != null && m.getRefHigh() != null) {
                     ref = m.getRefLow() + " - " + m.getRefHigh();
+                } else {
+                    // 使用工具类计算参考范围
+                    ref = org.example.util.ReferenceRangeUtil.getReferenceRange(
+                            m.getMetricKey(),
+                            null // 性别信息如果需要可以从 report 获取
+                    );
                 }
                 addCell(metricTable, ref, textFont);
             }
@@ -224,4 +231,3 @@ public class ReportService {
         table.addCell(cell);
     }
 }
-
