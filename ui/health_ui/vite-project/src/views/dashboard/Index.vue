@@ -56,13 +56,13 @@
         </div>
         <div class="chart-container chart-small">
           <Doughnut 
-            v-if="reportStatusChart.labels.length" 
+            v-if="reportStatusChart.datasets[0].data.reduce((a, b) => a + b, 0) > 0" 
             :data="reportStatusChart" 
             :options="doughnutChartOptions" 
           />
-          <div v-else class="loading-state">
-            <div class="spinner"></div>
-            <p>加载中...</p>
+          <div v-else class="empty-state">
+            <p>暂无报告数据</p>
+            <span class="empty-hint">待审核: {{ reportStatusChart.datasets[0].data[0] }} | 已完成: {{ reportStatusChart.datasets[0].data[1] }}</span>
           </div>
         </div>
       </div>
@@ -155,7 +155,7 @@ import {
   UserPlus,
   Activity as ActivityIcon
 } from 'lucide-vue-next';
-import { getOverview, getActivity } from '../../api/analysis';
+import { getOverview, getActivity, getCollegeStats } from '../../api/analysis';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -207,13 +207,12 @@ const activityChart = reactive({
 });
 
 const reportStatusChart = reactive({
-  labels: ['已生成', '待处理', '已完成'],
+  labels: ['待审核', '已完成'],
   datasets: [{
-    data: [0, 0, 0],
+    data: [0, 0],
     backgroundColor: [
-      '#34A853',
       '#FBBC05',
-      '#4285F4'
+      '#34A853'
     ],
     borderWidth: 0
   }]
@@ -297,20 +296,21 @@ onMounted(async () => {
     activityChart.labels = activity.map(item => item.date);
     activityChart.datasets[0].data = activity.map(item => item.count);
 
-    // Mock data for report status (替换为实际API调用)
+    // Report status: 1=待审核, 2=已完成
     reportStatusChart.datasets[0].data = [
-      overview.reportGenerated || 45,
-      overview.reportPending || 12,
-      overview.reportCompleted || 38
+      overview.reportPending || 0,
+      overview.reportCompleted || 0
     ];
 
-    // Mock data for college stats (替换为实际API调用)
-    collegeStats.value = [
-      { college: '计算机学院', studentCount: 450, examCount: 420, abnormalCount: 15, rate: 93 },
-      { college: '经济管理学院', studentCount: 380, examCount: 350, abnormalCount: 8, rate: 92 },
-      { college: '外国语学院', studentCount: 320, examCount: 310, abnormalCount: 5, rate: 97 },
-      { college: '机械工程学院', studentCount: 290, examCount: 260, abnormalCount: 12, rate: 90 }
-    ];
+    // Fetch college stats from API
+    const collegeData = await getCollegeStats();
+    collegeStats.value = collegeData.map(item => ({
+      college: item.college,
+      studentCount: item.studentCount,
+      examCount: item.examCount,
+      abnormalCount: item.abnormalCount,
+      rate: item.rate
+    }));
 
     // Mock data for recent activity (替换为实际API调用)
     recentActivity.value = [
@@ -469,6 +469,25 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   color: var(--text-secondary);
+}
+
+.empty-state {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+}
+
+.empty-state p {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.empty-hint {
+  font-size: 12px;
+  color: #999;
 }
 
 .spinner {

@@ -26,19 +26,26 @@
     </select>
 
     <select id="selectPage" resultType="org.example.report.ReportEntity">
-        SELECT <include refid="base_cols"/>
-        FROM t_report
-        WHERE deleted = 0
+        SELECT r.id, r.record_id, r.report_no, r.version, r.status,
+               r.summary, r.doctor_advice, r.generated_at, r.archived_at,
+               r.deleted, r.created_at, r.created_by, r.updated_at, r.updated_by,
+               s.name AS studentName, s.student_no AS studentNo,
+               b.batch_name AS batchName
+        FROM t_report r
+        LEFT JOIN t_exam_record er ON r.record_id = er.id
+        LEFT JOIN t_student s ON er.student_id = s.id
+        LEFT JOIN t_exam_batch b ON er.batch_id = b.id
+        WHERE r.deleted = 0
         <if test="recordId != null">
-            AND record_id = #{recordId}
+            AND r.record_id = #{recordId}
         </if>
         <if test="studentId != null">
-            AND record_id IN (SELECT id FROM t_exam_record WHERE student_id = #{studentId})
+            AND er.student_id = #{studentId}
         </if>
         <if test="status != null">
-            AND status = #{status}
+            AND r.status = #{status}
         </if>
-        ORDER BY generated_at DESC, id DESC
+        ORDER BY r.generated_at DESC, r.id DESC
         LIMIT #{limit} OFFSET #{offset}
     </select>
 
@@ -97,6 +104,7 @@
         UPDATE t_report
         SET doctor_advice = #{doctorAdvice},
             summary = #{summary},
+            status = CASE WHEN #{doctorAdvice} IS NOT NULL AND #{doctorAdvice} != '' THEN 2 ELSE status END,
             version = version + 1,
             updated_at = NOW(),
             updated_by = #{updatedBy}

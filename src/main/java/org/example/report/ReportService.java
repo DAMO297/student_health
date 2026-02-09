@@ -3,7 +3,10 @@ package org.example.report;
 import org.example.common.BizException;
 import org.example.common.PageResult;
 import org.example.exam.ExamMetricEntity;
+import org.example.exam.ExamRecordEntity;
 import org.example.exam.ExamService;
+import org.example.student.StudentEntity;
+import org.example.student.StudentMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,10 +26,12 @@ public class ReportService {
 
     private final ReportMapper reportMapper;
     private final ExamService examService;
+    private final StudentMapper studentMapper;
 
-    public ReportService(ReportMapper reportMapper, ExamService examService) {
+    public ReportService(ReportMapper reportMapper, ExamService examService, StudentMapper studentMapper) {
         this.reportMapper = reportMapper;
         this.examService = examService;
+        this.studentMapper = studentMapper;
     }
 
     public ReportEntity get(Long id) {
@@ -49,15 +54,20 @@ public class ReportService {
         if (exist != null)
             return exist;
 
+        // 获取学生姓名用于生成报告编号
+        ExamRecordEntity record = examService.getRecord(recordId);
+        StudentEntity student = studentMapper.selectById(record.getStudentId());
+        String studentName = student != null ? student.getName() : "未知";
+
         // 基于体检指标生成简化 summary（后续可扩展规则库）
         List<ExamMetricEntity> metrics = examService.listMetrics(recordId);
         String summary = buildSummary(metrics);
 
         ReportEntity r = new ReportEntity();
         r.setRecordId(recordId);
-        r.setReportNo(genReportNo(recordId));
+        r.setReportNo(genReportNo(studentName));
         r.setVersion(1);
-        r.setStatus(2);
+        r.setStatus(1); // 1=待审核，等待医生填写建议
         r.setSummary(summary);
         r.setDoctorAdvice(null);
         r.setCreatedBy(operator);
@@ -74,8 +84,8 @@ public class ReportService {
         return get(id);
     }
 
-    private String genReportNo(Long recordId) {
-        return "R" + LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE) + "-" + recordId;
+    private String genReportNo(String studentName) {
+        return "R" + LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE) + "-" + studentName;
     }
 
     private String buildSummary(List<ExamMetricEntity> metrics) {

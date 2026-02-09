@@ -43,10 +43,9 @@ public class AnalysisService {
 
         map.put("abnormalTrend", -2); // 简化：异常率下降2%
 
-        // 报告状态统计
-        map.put("reportGenerated", analysisMapper.countReportsByStatus(1)); // 已生成
-        map.put("reportPending", analysisMapper.countReportsByStatus(0)); // 待处理
-        map.put("reportCompleted", analysisMapper.countReportsByStatus(2)); // 已完成（如果有此状态）
+        // 报告状态统计: 1=待审核, 2=已完成
+        map.put("reportPending", analysisMapper.countReportsByStatus(1)); // 待审核
+        map.put("reportCompleted", analysisMapper.countReportsByStatus(2)); // 已完成
 
         return map;
     }

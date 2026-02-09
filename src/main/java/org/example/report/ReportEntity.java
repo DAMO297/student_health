@@ -20,9 +20,9 @@ public class ReportEntity {
     private String createdBy;
     private LocalDateTime updatedAt;
     private String updatedBy;
+
+    // 关联字段（用于列表展示）
+    private String studentName;
+    private String studentNo;
+    private String batchName;
 }
-
-
-
-
-

@@ -7,3 +7,7 @@ export const getOverview = () => {
 export const getActivity = () => {
     return request.get('/analysis/activity');
 };
+
+export const getCollegeStats = () => {
+    return request.get('/analysis/college-stats');
+};

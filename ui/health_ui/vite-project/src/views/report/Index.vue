@@ -16,9 +16,10 @@
       <thead>
         <tr>
           <th>报告单号</th>
+          <th>学号</th>
           <th>学生</th>
+          <th>体检批次</th>
           <th>状态</th>
-          <th>记录ID</th>
           <th>生成时间</th>
           <th>操作</th>
         </tr>
@@ -26,13 +27,14 @@
       <tbody>
         <tr v-for="item in list" :key="item.id">
           <td>{{ item.reportNo || '#' + item.id }}</td>
-          <td>学生ID: {{ item.studentId || '-' }}</td>
+          <td>{{ item.studentNo || '-' }}</td>
+          <td>{{ item.studentName || '-' }}</td>
+          <td>{{ item.batchName || '-' }}</td>
           <td>
-            <span class="badge" :class="item.status === 1 ? 'badge-success' : 'badge-warning'">
-              {{ item.status === 1 ? '已生成' : '待处理' }}
+            <span class="badge" :class="item.status === 2 ? 'badge-success' : 'badge-warning'">
+              {{ item.status === 2 ? '已完成' : '待审核' }}
             </span>
           </td>
-          <td>{{ item.recordId }}</td>
           <td>{{ item.createdAt }}</td>
           <td>
             <div class="action-btns">

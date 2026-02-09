@@ -35,15 +35,17 @@ public interface AnalysisMapper {
     @Select("SELECT DATE(created_at) as date, COUNT(1) as count FROM t_exam_record WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) GROUP BY DATE(created_at) ORDER BY date")
     List<Map<String, Object>> countRecentActivity();
 
-    // College statistics
+    // College statistics - based on the latest active batch
     @Select("SELECT " +
             "s.college, " +
             "COUNT(DISTINCT s.id) as studentCount, " +
             "COUNT(DISTINCT er.id) as examCount, " +
             "SUM(CASE WHEN er.abnormal_flag = 1 THEN 1 ELSE 0 END) as abnormalCount, " +
-            "ROUND(COUNT(DISTINCT er.id) * 100.0 / COUNT(DISTINCT s.id), 0) as rate " +
+            "ROUND(COUNT(DISTINCT er.student_id) * 100.0 / COUNT(DISTINCT s.id), 0) as rate " +
             "FROM t_student s " +
             "LEFT JOIN t_exam_record er ON s.id = er.student_id AND er.deleted = 0 " +
+            "AND er.batch_id = (SELECT id FROM t_exam_batch WHERE deleted = 0 AND status IN (1,2) ORDER BY start_date DESC LIMIT 1) "
+            +
             "WHERE s.deleted = 0 " +
             "GROUP BY s.college " +
             "ORDER BY studentCount DESC " +
