@@ -38,7 +38,14 @@
         LIMIT #{limit} OFFSET #{offset}
     </select>
 
+    <select id="selectByBatchId" resultType="org.example.exam.ExamRecordEntity">
+        SELECT <include refid="base_cols"/>
+        FROM t_exam_record
+        WHERE batch_id = #{batchId} AND deleted = 0
+    </select>
+
     <select id="count" resultType="long">
+
         SELECT COUNT(1)
         FROM t_exam_record
         WHERE deleted = 0

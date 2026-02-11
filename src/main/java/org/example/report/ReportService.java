@@ -78,6 +78,10 @@ public class ReportService {
 
     @Transactional
     public ReportEntity updateAdvice(Long id, String summary, String doctorAdvice, String operator) {
+        ReportEntity report = get(id);
+        if (report.getStatus() != null && report.getStatus() == 3) {
+            throw new BizException(400, "报告已归档，无法修改");
+        }
         int n = reportMapper.updateAdvice(id, doctorAdvice, summary, operator);
         if (n == 0)
             throw BizException.notFound("报告不存在或已删除");
@@ -198,6 +202,15 @@ public class ReportService {
             addCell(metricTable, "结果", boldFont);
             addCell(metricTable, "参考范围", boldFont);
 
+            // Fetch student info for age/gender context
+            ExamRecordEntity record = examService.getRecord(report.getRecordId());
+            StudentEntity student = studentMapper.selectById(record.getStudentId());
+            Integer gender = student != null ? student.getGender() : 0;
+            Integer age = null;
+            if (student != null && student.getBirthday() != null) {
+                age = java.time.Period.between(student.getBirthday(), LocalDate.now()).getYears();
+            }
+
             for (ExamMetricEntity m : metrics) {
                 addCell(metricTable, m.getMetricName(), textFont);
                 String val = m.getValueText() != null ? m.getValueText()
@@ -209,11 +222,11 @@ public class ReportService {
                 if (m.getRefLow() != null && m.getRefHigh() != null) {
                     ref = m.getRefLow() + " - " + m.getRefHigh();
                 } else {
-                    // 使用工具类计算参考范围
+                    // 使用工具类计算参考范围 (传递性别和年龄)
                     ref = org.example.util.ReferenceRangeUtil.getReferenceRange(
                             m.getMetricKey(),
-                            null // 性别信息如果需要可以从 report 获取
-                    );
+                            gender,
+                            age);
                 }
                 addCell(metricTable, ref, textFont);
             }
@@ -233,6 +246,49 @@ public class ReportService {
             if (document.isOpen())
                 document.close();
         }
+    }
+
+    @Transactional
+    public java.util.Map<String, Integer> generateBatch(Long batchId, String operator) {
+        List<ExamRecordEntity> records = examService.listByBatchId(batchId);
+        int success = 0;
+        int exists = 0;
+        for (ExamRecordEntity record : records) {
+            try {
+                // Check exist first to count correctly
+                ReportEntity exist = reportMapper.selectByRecordId(record.getId());
+                if (exist != null) {
+                    exists++;
+                } else {
+                    generate(record.getId(), operator);
+                    success++;
+                }
+            } catch (Exception e) {
+                // log error but continue
+                e.printStackTrace();
+            }
+        }
+        java.util.Map<String, Integer> result = new java.util.HashMap<>();
+        result.put("total", records.size());
+        result.put("success", success);
+        result.put("exists", exists);
+        return result;
+    }
+
+    @Transactional
+    public void archiveBatch(Long batchId, String operator) {
+        // 1. Get all records of the batch
+        List<ExamRecordEntity> records = examService.listByBatchId(batchId);
+        if (records.isEmpty()) {
+            // Even if no records, maybe we still want to archive the batch itself?
+            // Yes, user wants to see "Archived" on the batch list.
+        }
+
+        // 2. Update status of reports
+        reportMapper.archiveByBatchId(batchId, operator);
+
+        // 3. Update status of the batch itself to 4 (Archived)
+        examService.updateBatchStatus(batchId, 4, operator);
     }
 
     private void addCell(PdfPTable table, String text, Font font) {

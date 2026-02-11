@@ -110,5 +110,20 @@ public class ReportController {
         List<ReportExcelModel> list = reportService.exportList(recordId, status);
         EasyExcel.write(response.getOutputStream(), ReportExcelModel.class).sheet("体检报告").doWrite(list);
     }
-}
 
+    @PostMapping("/batch/{batchId}/generate")
+    @PreAuthorize("hasAuthority('report:generate')")
+    @AuditLog(action = "批量生成报告", resource = "report")
+    public ApiResponse<java.util.Map<String, Integer>> generateBatch(
+            @PathVariable Long batchId) {
+        return ApiResponse.ok(reportService.generateBatch(batchId, SecurityUtil.currentUsername()));
+    }
+
+    @PostMapping("/batch/{batchId}/archive")
+    @PreAuthorize("hasAuthority('report:archive')")
+    @AuditLog(action = "归档体检报告", resource = "report")
+    public ApiResponse<Void> archiveBatch(@PathVariable Long batchId) {
+        reportService.archiveBatch(batchId, SecurityUtil.currentUsername());
+        return ApiResponse.ok(null);
+    }
+}

@@ -111,6 +111,17 @@
         WHERE id = #{id} AND deleted = 0
     </update>
 
+    <update id="archiveByBatchId">
+        UPDATE t_report r
+        JOIN t_exam_record er ON r.record_id = er.id
+        SET r.status = 3,
+            r.archived_at = NOW(),
+            r.updated_at = NOW(),
+            r.updated_by = #{operator}
+        WHERE er.batch_id = #{batchId} AND r.deleted = 0
+    </update>
+
+
 </mapper>
 
 

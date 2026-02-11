@@ -40,6 +40,12 @@
             <td>{{ batch.remark || '-' }}</td>
             <td>
               <div class="action-btns">
+                <button class="btn btn-outline btn-sm" @click="handleGenerateReports(batch)" title="生成报告" :disabled="batch.status === 4">
+                   报告
+                </button>
+                <button class="btn btn-outline btn-sm" @click="handleArchiveBatch(batch)" title="归档" :disabled="batch.status === 4">
+                   归档
+                </button>
                 <button class="btn btn-outline btn-sm" @click="openModal(batch)">
                   <Edit3 :size="14" /> 编辑
                 </button>
@@ -114,13 +120,17 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { Plus, Edit3, Trash2, X } from 'lucide-vue-next';
+import { Plus, Edit3, Trash2, X, FileText, Archive } from 'lucide-vue-next';
 import { 
   listBatches, 
   createBatch, 
   updateBatch, 
   deleteBatch 
 } from '../../api/exam';
+
+import { generateBatchReports, archiveBatchReports } from '../../api/report';
+
+
 
 const batches = ref([]);
 const showModal = ref(false);
@@ -232,7 +242,33 @@ const handleDelete = async (id) => {
   }
 };
 
+const handleGenerateReports = async (batch) => {
+  if (!confirm(`确定要为批次"${batch.batchName}"生成所有体检报告吗？这可能需要一些时间。`)) return;
+  
+  try {
+    const res = await generateBatchReports(batch.id);
+    alert(`操作完成！\n共 ${res.total} 条记录\n成功生成：${res.success}\n已存在：${res.exists}`);
+  } catch (e) {
+    console.error('Generate reports failed:', e);
+    alert('生成报告失败：' + (e.message || '未知错误'));
+  }
+};
+
+const handleArchiveBatch = async (batch) => {
+  if (!confirm(`确定要归档批次"${batch.batchName}"吗？\n归档后，所有报告将变为只读，无法再修改建议！`)) return;
+
+  try {
+    await archiveBatchReports(batch.id);
+    alert('归档成功！');
+    fetchBatches(); 
+  } catch (e) {
+    console.error('Archive failed:', e);
+    alert('归档失败：' + (e.message || '未知错误'));
+  }
+};
+
 onMounted(fetchBatches);
+
 </script>
 
 <style scoped>

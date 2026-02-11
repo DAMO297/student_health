@@ -20,18 +20,25 @@ public class ExamService {
     private final ExamBatchMapper batchMapper;
     private final ExamRecordMapper recordMapper;
     private final ExamMetricMapper metricMapper;
+    private final org.example.student.StudentMapper studentMapper;
     private final UserService userService;
 
     public ExamService(ExamBatchMapper batchMapper, ExamRecordMapper recordMapper, ExamMetricMapper metricMapper,
+            org.example.student.StudentMapper studentMapper,
             UserService userService) {
         this.batchMapper = batchMapper;
         this.recordMapper = recordMapper;
         this.metricMapper = metricMapper;
+        this.studentMapper = studentMapper;
         this.userService = userService;
     }
 
     public List<ExamBatchEntity> listBatches(Integer status) {
         return batchMapper.selectAll(status);
+    }
+
+    public List<ExamRecordEntity> listByBatchId(Long batchId) {
+        return recordMapper.selectByBatchId(batchId);
     }
 
     public ExamBatchEntity getBatch(Long id) {
@@ -70,6 +77,14 @@ public class ExamService {
         int n = batchMapper.softDelete(id);
         if (n == 0)
             throw BizException.notFound("体检批次不存在或已删除");
+    }
+
+    @Transactional
+    public void updateBatchStatus(Long id, Integer status, String operator) {
+        ExamBatchEntity e = getBatch(id);
+        e.setStatus(status);
+        e.setUpdatedBy(operator);
+        batchMapper.update(e);
     }
 
     public ExamRecordEntity getRecord(Long id) {
@@ -176,5 +191,92 @@ public class ExamService {
         }
         if (!list.isEmpty())
             metricMapper.insertBatch(list);
+    }
+
+    @Transactional
+    public org.example.common.dto.ImportResult importRecords(java.io.InputStream is, Long batchId, String operator) {
+        org.example.common.dto.ImportResult result = new org.example.common.dto.ImportResult();
+        List<org.example.exam.dto.ExamRecordExcelModel> list;
+        try {
+            list = com.alibaba.excel.EasyExcel.read(is).head(org.example.exam.dto.ExamRecordExcelModel.class).sheet()
+                    .doReadSync();
+        } catch (Exception e) {
+            throw new BizException(400, "读取Excel文件失败: " + e.getMessage());
+        }
+
+        UserEntity user = userService.getByUsername(operator);
+        if (user == null)
+            throw BizException.unauthorized();
+
+        for (int i = 0; i < list.size(); i++) {
+            org.example.exam.dto.ExamRecordExcelModel row = list.get(i);
+            int lineNum = i + 2;
+            try {
+                processImportRow(row, batchId, user.getId(), operator);
+                result.setSuccessCount(result.getSuccessCount() + 1);
+            } catch (Exception e) {
+                result.setFailCount(result.getFailCount() + 1);
+                result.getErrorMessages().add("第" + lineNum + "行(" + row.getStudentNo() + ")导入失败: " + e.getMessage());
+            }
+        }
+        return result;
+    }
+
+    private void processImportRow(org.example.exam.dto.ExamRecordExcelModel row, Long batchId, Long doctorId,
+            String operator) {
+        if (row.getStudentNo() == null || row.getStudentNo().isEmpty())
+            throw new RuntimeException("学号为空");
+
+        org.example.student.StudentEntity student = studentMapper.selectByStudentNo(row.getStudentNo());
+        if (student == null)
+            throw new RuntimeException("学生不存在");
+
+        ExamRecordEntity e = new ExamRecordEntity();
+        e.setBatchId(batchId);
+        e.setStudentId(student.getId());
+        e.setDoctorId(doctorId);
+        e.setSource(2); // 2=Excel Import
+        e.setAuditStatus(1); // 1=Pending
+        e.setRemark(row.getRemark());
+        e.setAbnormalFlag(0);
+        e.setDeleted(0);
+        e.setCreatedBy(operator);
+        e.setUpdatedBy(operator);
+
+        if (row.getRecordTime() != null && !row.getRecordTime().trim().isEmpty()) {
+            try {
+                e.setRecordTime(LocalDateTime.parse(row.getRecordTime().trim(),
+                        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            } catch (Exception ex) {
+                e.setRecordTime(LocalDateTime.now());
+            }
+        } else {
+            e.setRecordTime(LocalDateTime.now());
+        }
+
+        recordMapper.insert(e);
+
+        // Convert metrics
+        List<ExamMetricSaveRequest> metrics = new ArrayList<>();
+        addMetric(metrics, "height", "身高", row.getHeight(), "cm");
+        addMetric(metrics, "weight", "体重", row.getWeight(), "kg");
+        addMetric(metrics, "blood_pressure_sys", "收缩压", row.getSbp(), "mmHg");
+        addMetric(metrics, "blood_pressure_dia", "舒张压", row.getDbp(), "mmHg");
+        addMetric(metrics, "vision_left", "左眼视力", row.getVisionLeft(), null);
+        addMetric(metrics, "vision_right", "右眼视力", row.getVisionRight(), null);
+
+        saveMetrics(e.getId(), metrics);
+    }
+
+    private void addMetric(List<ExamMetricSaveRequest> list, String key, String name, java.math.BigDecimal value,
+            String unit) {
+        if (value == null)
+            return;
+        ExamMetricSaveRequest m = new ExamMetricSaveRequest();
+        m.setMetricKey(key);
+        m.setMetricName(name);
+        m.setValueDecimal(value);
+        m.setUnit(unit);
+        list.add(m);
     }
 }

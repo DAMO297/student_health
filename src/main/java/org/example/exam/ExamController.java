@@ -108,9 +108,19 @@ public class ExamController {
 
     @DeleteMapping("/exam-records/{id}")
     @PreAuthorize("hasAuthority('exam_record:delete')")
-    @AuditLog(action = "删除体检记录", resource = "exam_record")
+    @AuditLog(action = "删除体检记录", resource = "exam")
     public ApiResponse<Void> deleteRecord(@PathVariable Long id) {
         examService.deleteRecord(id);
         return ApiResponse.ok(null);
+    }
+
+    @PostMapping("/exam-records/import")
+    @PreAuthorize("hasAuthority('student:import')") // Consistently use import permission
+    @AuditLog(action = "批量导入体检记录", resource = "exam")
+    public ApiResponse<org.example.common.dto.ImportResult> importRecords(
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @RequestParam("batchId") Long batchId) throws java.io.IOException {
+        return ApiResponse
+                .ok(examService.importRecords(file.getInputStream(), batchId, SecurityUtil.currentUsername()));
     }
 }

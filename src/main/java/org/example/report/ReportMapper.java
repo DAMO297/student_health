@@ -30,5 +30,7 @@ public interface ReportMapper {
         int updateAdvice(@Param("id") Long id, @Param("doctorAdvice") String doctorAdvice,
                         @Param("summary") String summary,
                         @Param("updatedBy") String updatedBy);
-}
 
+        int archiveByBatchId(@Param("batchId") Long batchId, @Param("operator") String operator);
+
+}

@@ -35,6 +35,8 @@ public interface ExamRecordMapper {
                         @Param("offset") int offset,
                         @Param("limit") int limit);
 
+        List<ExamRecordEntity> selectByBatchId(@Param("batchId") Long batchId);
+
         int insert(ExamRecordEntity e);
 
         int update(ExamRecordEntity e);

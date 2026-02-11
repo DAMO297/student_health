@@ -27,3 +27,15 @@ export const createRecord = (data) => {
 export const updateRecord = (id, data) => {
     return request.put(`/exam-records/${id}`, data);
 };
+
+export const importRecords = (file, batchId) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('batchId', batchId);
+    return request.post('/exam-records/import', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    });
+};
+

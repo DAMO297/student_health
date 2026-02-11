@@ -6,6 +6,10 @@
         <p>管理体检批次与详细检查记录</p>
       </div>
       <div class="header-actions">
+        <button class="btn btn-outline" @click="triggerImport" :disabled="!selectedBatchId">
+          <Upload :size="18" /> 批量导入
+        </button>
+        <input type="file" ref="fileInput" @change="handleFileChange" accept=".xlsx,.xls" style="display: none" />
         <button class="btn btn-primary" @click="openRecordModal">
           <Plus :size="18" /> 新增记录
         </button>
@@ -197,8 +201,8 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { Plus, Calendar, FileText, Edit3, X } from 'lucide-vue-next';
-import { listBatches, getRecordPage, createRecord, updateRecord } from '../../api/exam';
+import { Plus, Calendar, FileText, Edit3, X, Upload } from 'lucide-vue-next';
+import { listBatches, getRecordPage, createRecord, updateRecord, importRecords } from '../../api/exam';
 import { generateReport } from '../../api/report';
 import { getStudentList } from '../../api/student';
 
@@ -208,6 +212,7 @@ const students = ref([]);
 const selectedBatchId = ref(null);
 const showModal = ref(false);
 const isEditMode = ref(false);
+const fileInput = ref(null);
 
 const form = ref({
   batchId: '',
@@ -306,13 +311,25 @@ const openRecordModal = () => {
   showModal.value = true;
 };
 
+const formatToInputDate = (dateStr) => {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hour = String(d.getHours()).padStart(2, '0');
+  const minute = String(d.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hour}:${minute}`;
+};
+
 const handleEditRecord = (record) => {
   isEditMode.value = true;
   form.value = {
     id: record.id,
     batchId: record.batchId,
     studentId: record.studentId,
-    examTime: record.examTime,
+    examTime: formatToInputDate(record.recordTime),
     height: record.height,
     weight: record.weight,
     sbp: record.sbp,
@@ -353,10 +370,18 @@ const onStudentChange = () => {
 const handleSubmit = async () => {
   try {
     // 转换前端表单格式为后端期望的格式
+    let examTimeStr = form.value.examTime;
+    if (examTimeStr && examTimeStr.includes('T')) {
+      examTimeStr = examTimeStr.replace('T', ' ');
+      if (examTimeStr.length === 16) {
+        examTimeStr += ':00';
+      }
+    }
+
     const payload = {
       batchId: form.value.batchId,
       studentId: form.value.studentId,
-      recordTime: form.value.examTime.replace('T', ' ') + ':00', // 转换为 yyyy-MM-dd HH:mm:ss
+      recordTime: examTimeStr,
       remark: form.value.remark || '',
       metrics: []
     };
@@ -460,6 +485,40 @@ const handleGenerateReport = async (recordId) => {
     alert('报告生成成功！可前往健康报告模块查看。');
   } catch (e) {
     alert('生成报告失败：' + (e.message || '未知错误'));
+  }
+};
+
+const triggerImport = () => {
+  if (!selectedBatchId.value) {
+    alert('请先选择一个体检批次！');
+    return;
+  }
+  fileInput.value.click();
+};
+
+const handleFileChange = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (!confirm(`确定要将文件 "${file.name}" 导入到当前批次吗？`)) {
+    event.target.value = '';
+    return;
+  }
+
+  try {
+    const res = await importRecords(file, selectedBatchId.value);
+    let msg = `导入完成！\n成功：${res.successCount}条\n失败：${res.failCount}条`;
+    if (res.errorMessages && res.errorMessages.length > 0) {
+      msg += '\n\n部分导入失败原因：\n' + res.errorMessages.slice(0, 5).join('\n');
+      if (res.errorMessages.length > 5) msg += `\n...等共 ${res.errorMessages.length} 条错误`;
+    }
+    alert(msg);
+    selectBatch(selectedBatchId.value); // 刷新列表
+  } catch (e) {
+    console.error('Import failed:', e);
+    alert('导入失败：' + (e.response?.data?.message || e.message || '未知错误'));
+  } finally {
+    event.target.value = ''; // 重置
   }
 };
 

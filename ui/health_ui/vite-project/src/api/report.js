@@ -62,3 +62,13 @@ export const exportReportExcel = async (params) => {
         alert('导出Excel失败：' + (e.response?.data?.message || e.message || '未知错误'));
     }
 };
+
+
+export const generateBatchReports = (batchId) => {
+    return request.post(`/reports/batch/${batchId}/generate`);
+};
+
+export const archiveBatchReports = (batchId) => {
+    return request.post(`/reports/batch/${batchId}/archive`);
+};
+
