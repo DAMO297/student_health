@@ -12,6 +12,7 @@ public interface StudentMapper {
         StudentEntity selectByStudentNo(@Param("studentNo") String studentNo);
 
         List<StudentEntity> selectPage(
+                        @Param("keyword") String keyword,
                         @Param("studentNo") String studentNo,
                         @Param("name") String name,
                         @Param("college") String college,
@@ -22,6 +23,7 @@ public interface StudentMapper {
                         @Param("limit") int limit);
 
         List<StudentEntity> selectList(
+                        @Param("keyword") String keyword,
                         @Param("studentNo") String studentNo,
                         @Param("name") String name,
                         @Param("college") String college,
@@ -30,6 +32,7 @@ public interface StudentMapper {
                         @Param("status") Integer status);
 
         long count(
+                        @Param("keyword") String keyword,
                         @Param("studentNo") String studentNo,
                         @Param("name") String name,
                         @Param("college") String college,
@@ -43,4 +46,3 @@ public interface StudentMapper {
 
         int softDelete(@Param("id") Long id);
 }
-

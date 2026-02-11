@@ -29,6 +29,9 @@
         SELECT <include refid="base_cols"/>
         FROM t_student
         WHERE deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (student_no LIKE CONCAT('%', #{keyword}, '%') OR name LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
         <if test="studentNo != null and studentNo != ''">
             AND student_no LIKE CONCAT('%', #{studentNo}, '%')
         </if>
@@ -55,6 +58,9 @@
         SELECT <include refid="base_cols"/>
         FROM t_student
         WHERE deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (student_no LIKE CONCAT('%', #{keyword}, '%') OR name LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
         <if test="studentNo != null and studentNo != ''">
             AND student_no LIKE CONCAT('%', #{studentNo}, '%')
         </if>
@@ -80,6 +86,9 @@
         SELECT COUNT(1)
         FROM t_student
         WHERE deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (student_no LIKE CONCAT('%', #{keyword}, '%') OR name LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
         <if test="studentNo != null and studentNo != ''">
             AND student_no LIKE CONCAT('%', #{studentNo}, '%')
         </if>
@@ -99,6 +108,7 @@
             AND status = #{status}
         </if>
     </select>
+
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO t_student (

@@ -2,7 +2,29 @@
   <div class="records-container">
     <div class="page-header">
       <h1>体检记录查看</h1>
-      <p>回顾您在校期间的所有体检历史记录</p>
+      <p>回顾您在校期间的所有体检历史记录与健康趋势</p>
+    </div>
+
+    <!-- Health Trend Chart Section -->
+    <div class="card trend-section" v-if="records.length > 0">
+      <div class="card-header">
+        <h3>健康趋势预测</h3>
+        <div class="metric-selector">
+          <button v-for="m in trendMetrics" :key="m.key" 
+            :class="{ 'active': activeMetric === m.key }"
+            @click="changeTrendMetric(m.key)">
+            {{ m.name }}
+          </button>
+        </div>
+      </div>
+      <div class="chart-container-medium">
+        <Line v-if="trendChartData.labels.length" :data="trendChartData" :options="trendOptions" />
+        <div v-else class="loading-state">趋势分析中...</div>
+      </div>
+      <div class="trend-prediction-tip" v-if="personalTrend?.trend">
+        核心预测：您的指标表现出 <span :class="personalTrend.trend === '上升' ? 'text-danger' : 'text-success'">{{ personalTrend.trend }}</span> 趋势。
+        预计下次：<span class="prediction-val">{{ personalTrend.prediction.toFixed(2) }}</span>
+      </div>
     </div>
 
     <div class="card table-card skeleton-container" v-if="loading">
@@ -73,27 +95,113 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { Activity, ChevronRight, X } from 'lucide-vue-next';
+import { Activity, ChevronRight, X, TrendingUp } from 'lucide-vue-next';
+import {
+  Chart as ChartJS,
+  Title,
+  Tooltip,
+  Legend,
+  LineElement,
+  LinearScale,
+  PointElement,
+  CategoryScale,
+  Filler
+} from 'chart.js';
+import { Line } from 'vue-chartjs';
 import request from '../../api/request';
 import { getReferenceRange, checkAbnormal } from '../../utils/examReferenceRanges';
+import { getStudentTrend } from '../../api/analysis';
+import { useAuthStore } from '../../store/auth';
+
+ChartJS.register(Title, Tooltip, Legend, LineElement, LinearScale, PointElement, CategoryScale, Filler);
+
+const auth = useAuthStore();
 
 const loading = ref(true);
 const records = ref([]);
 const metrics = ref([]);
 const showModal = ref(false);
 const selectedRecord = ref(null);
-const studentGender = ref(null); // 学生性别
+const studentGender = ref(null);
+
+// --- Trend Logic ---
+const activeMetric = ref('bmi');
+const trendMetrics = [
+  { key: 'bmi', name: 'BMI' },
+  { key: 'sbp', name: '收缩压' },
+  { key: 'dbp', name: '舒张压' }
+];
+
+const personalTrend = ref(null);
+const trendChartData = reactive({
+  labels: [],
+  datasets: []
+});
+
+const trendOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  scales: { y: { beginAtZero: false } }
+};
 
 const fetchData = async () => {
   try {
     loading.value = true;
     const res = await request.get('/exam-records', { params: { pageSize: 50 } });
     records.value = res.list;
+    if (records.value.length > 0) {
+      loadTrend();
+    }
   } catch (e) {
     console.error('Failed to fetch records', e);
   } finally {
     loading.value = false;
   }
+};
+
+const loadTrend = async () => {
+  const studentId = auth.userInfo?.studentId;
+  if (!studentId) return;
+
+  try {
+    const res = await getStudentTrend(studentId, activeMetric.value);
+    if (res && res.history) {
+      personalTrend.value = res;
+      trendChartData.labels = [...res.history.map(h => h.date), '预测下次'];
+      
+      const hist = res.history.map(h => h.value);
+      const predFull = [...(new Array(hist.length - 1).fill(null)), hist[hist.length - 1], res.prediction];
+
+      // Refreshing datasets array
+      trendChartData.datasets = [
+        {
+          label: '历史数值',
+          borderColor: '#4285F4',
+          backgroundColor: 'rgba(66, 133, 244, 0.1)',
+          data: [...hist, null],
+          fill: true,
+          tension: 0.4
+        },
+        {
+          label: '预测趋势',
+          borderColor: '#EA4335',
+          borderDash: [5, 5],
+          data: predFull,
+          pointStyle: 'rectRot',
+          pointRadius: 6
+        }
+      ];
+    }
+  } catch (e) {
+    console.error('Trend load failed', e);
+  }
+};
+
+
+const changeTrendMetric = (key) => {
+  activeMetric.value = key;
+  loadTrend();
 };
 
 const viewDetails = async (record) => {
@@ -233,4 +341,46 @@ onMounted(fetchData);
 .data-table { width: 100%; border-collapse: collapse; }
 .data-table th { text-align: left; padding: 12px; background: #f8f9fa; border-bottom: 1px solid var(--border-color); }
 .data-table td { padding: 12px; border-bottom: 1px solid var(--border-color); }
+.chart-container-medium {
+  height: 250px;
+  position: relative;
+  margin: 16px 0;
+}
+
+.trend-section {
+  padding: 24px;
+}
+
+.metric-selector {
+  display: flex;
+  gap: 8px;
+}
+
+.metric-selector button {
+  padding: 4px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  background: white;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.metric-selector button.active {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.trend-prediction-tip {
+  font-size: 14px;
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: 8px;
+  color: var(--text-secondary);
+}
+
+.prediction-val {
+  font-weight: 600;
+  color: var(--primary-color);
+}
 </style>

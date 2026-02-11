@@ -36,6 +36,7 @@ public class StudentController {
     @GetMapping
     @PreAuthorize("hasAuthority('student:read')")
     public ApiResponse<PageResult<StudentEntity>> page(
+            @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String studentNo,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String college,
@@ -44,7 +45,8 @@ public class StudentController {
             @RequestParam(required = false) Integer status,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int pageSize) {
-        return ApiResponse.ok(studentService.page(studentNo, name, college, grade, clazz, status, page, pageSize));
+        return ApiResponse
+                .ok(studentService.page(keyword, studentNo, name, college, grade, clazz, status, page, pageSize));
     }
 
     @GetMapping("/{id}")
@@ -86,6 +88,7 @@ public class StudentController {
     @GetMapping("/export")
     @PreAuthorize("hasAuthority('student:export')")
     public void export(
+            @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String studentNo,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String college,
@@ -99,7 +102,9 @@ public class StudentController {
                 "%20");
         response.setHeader("Content-disposition", "attachment;filename*=utf-8''" + fileName + ".xlsx");
 
-        List<StudentExcelModel> list = studentService.exportStudents(studentNo, name, college, grade, clazz, status);
+        List<StudentExcelModel> list = studentService.exportStudents(keyword, studentNo, name, college, grade, clazz,
+                status);
+
         EasyExcel.write(response.getOutputStream(), StudentExcelModel.class).sheet("学生数据").doWrite(list);
     }
 

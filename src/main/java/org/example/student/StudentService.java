@@ -30,12 +30,13 @@ public class StudentService {
         return e;
     }
 
-    public PageResult<StudentEntity> page(String studentNo, String name, String college, String grade, String clazz,
+    public PageResult<StudentEntity> page(String keyword, String studentNo, String name, String college, String grade,
+            String clazz,
             Integer status, int page, int pageSize) {
         int offset = Math.max(0, page - 1) * pageSize;
-        long total = studentMapper.count(studentNo, name, college, grade, clazz, status);
+        long total = studentMapper.count(keyword, studentNo, name, college, grade, clazz, status);
         return new PageResult<>(total,
-                studentMapper.selectPage(studentNo, name, college, grade, clazz, status, offset, pageSize));
+                studentMapper.selectPage(keyword, studentNo, name, college, grade, clazz, status, offset, pageSize));
     }
 
     @Transactional
@@ -99,9 +100,10 @@ public class StudentService {
             throw BizException.notFound("学生不存在或已删除");
     }
 
-    public List<StudentExcelModel> exportStudents(String studentNo, String name, String college, String grade,
+    public List<StudentExcelModel> exportStudents(String keyword, String studentNo, String name, String college,
+            String grade,
             String clazz, Integer status) {
-        List<StudentEntity> list = studentMapper.selectList(studentNo, name, college, grade, clazz, status);
+        List<StudentEntity> list = studentMapper.selectList(keyword, studentNo, name, college, grade, clazz, status);
         return list.stream().map(e -> {
             StudentExcelModel m = new StudentExcelModel();
             m.setStudentNo(e.getStudentNo());
@@ -182,4 +184,3 @@ public class StudentService {
         }
     }
 }
-

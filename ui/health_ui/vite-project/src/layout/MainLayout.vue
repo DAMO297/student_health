@@ -78,6 +78,7 @@ const menuItems = computed(() => {
   const type = auth.userInfo?.userType;
   const allItems = [
     { name: '仪表盘', path: '/', icon: LayoutDashboard, roles: [1, 2] },
+    { name: '数据分析', path: '/analysis', icon: Activity, roles: [1, 2] },
     { name: '学生管理', path: '/students', icon: Users, roles: [1] }, // 仅管理员可见
     { name: '体检批次管理', path: '/batches', icon: Calendar, roles: [1] }, // 仅管理员可见
     { name: '体检管理', path: '/exams', icon: Activity, roles: [1, 2] },

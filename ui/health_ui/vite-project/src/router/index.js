@@ -24,6 +24,12 @@ const routes = [
                 component: () => import('../views/dashboard/Index.vue')
             },
             {
+                path: 'analysis',
+                name: 'DataAnalysis',
+                component: () => import('../views/analysis/Index.vue')
+            },
+
+            {
                 path: 'students',
                 name: 'Students',
                 component: () => import('../views/student/Index.vue')
